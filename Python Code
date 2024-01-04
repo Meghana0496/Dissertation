@@ -1,0 +1,649 @@
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn import svm
+from sklearn.metrics import accuracy_score
+
+
+# In[4]:
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import itertools
+import graphviz 
+from sklearn import model_selection
+from sklearn.preprocessing import Imputer
+from sklearn.model_selection import train_test_split, cross_val_score, KFold, learning_curve, StratifiedKFold, train_test_split
+from sklearn.metrics import confusion_matrix, make_scorer, accuracy_score 
+from sklearn import tree
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+import xgboost as xgb
+from xgboost import XGBClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC, LinearSVC
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
+from sklearn.neural_network import MLPClassifier as MLPC
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+import warnings
+warnings.filterwarnings("ignore")
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+
+# In[5]:
+
+
+pip install scikit-learn==0.20.4
+
+
+# In[6]:
+
+
+# loading the diabetes dataset to a pandas DataFrame
+diabetic_data = pd.read_csv('/Users/Desktop/dissertation /diabetes.csv') 
+
+
+# In[7]:
+
+
+diabetic_data.head()
+
+
+# In[8]:
+
+
+# number of rows and Columns in this dataset
+diabetic_data.shape
+
+
+# In[9]:
+
+
+# getting the statistical measures of the data
+diabetic_data.describe()
+
+
+# In[10]:
+
+
+diabetic_data['Outcome'].value_counts()
+
+
+# In[11]:
+
+
+print(diabetic_data.dtypes)
+
+
+# 0 --> Non-Diabetic
+# 
+# 1 --> Diabetic
+
+# In[12]:
+
+
+diabetic_data.groupby('Outcome').mean()
+
+
+# In[13]:
+
+
+# separating the data and labels
+X = diabetic_data.drop(columns = 'Outcome', axis=1)
+Y = diabetic_data['Outcome']
+
+
+# In[14]:
+
+
+print(X)
+
+
+# In[15]:
+
+
+diabetic_data2 = diabetic_data.iloc[:, :-1]
+print("# of Rows, # of Columns: ",diabetic_data2.shape)
+print("\nColumn Name           # of Null Values\n")
+print((diabetic_data2[:] == 0).sum())
+
+
+# In[16]:
+
+
+print("# of Rows, # of Columns: ",diabetic_data2.shape)
+print("\nColumn Name              % Null Values\n")
+print(((diabetic_data2[:] == 0).sum())/768*100)
+
+
+# In[17]:
+
+
+diabetic_data[['Glucose','BloodPressure','SkinThickness','Insulin','BMI']] = diabetic_data2[['Glucose','BloodPressure','SkinThickness','Insulin','BMI']].replace(0,np.NaN)
+
+
+# In[18]:
+
+
+diabetic_data2.isnull().sum()
+
+
+# In[19]:
+
+
+median_values = diabetic_data.median()
+
+# Impute missing values with the respective column medians
+df_imputed = diabetic_data.fillna(median_values)
+
+
+# In[20]:
+
+
+df_imputed.isnull().sum()
+
+
+# EDA
+
+# In[21]:
+
+
+sns.countplot(x='Outcome', data=diabetic_data)
+plt.title('Diabetes Count')
+plt.xlabel('Diabetes')
+plt.ylabel('Count')
+plt.show()
+
+
+# In[36]:
+
+
+import random # random library
+pallete = ['Accent_r', 'Blues', 'BrBG', 'BrBG_r', 'BuPu', 'CMRmap', 'CMRmap_r', 'Dark2', 'Dark2_r', 'GnBu', 'GnBu_r', 'OrRd', 'Oranges', 'Paired', 'PuBu', 'PuBuGn', 'PuRd', 'Purples', 'RdGy_r', 'RdPu', 'Reds', 'autumn', 'cool', 'coolwarm', 'flag', 'flare', 'gist_rainbow', 'hot', 'magma', 'mako', 'plasma', 'prism', 'rainbow', 'rocket', 'seismic', 'spring', 'summer', 'terrain', 'turbo', 'twilight']
+
+
+# In[43]:
+
+
+sns.histplot(x="BloodPressure", hue="Outcome", data=df_imputed, kde=True, palette=random.choice(pallete))
+
+
+# In[47]:
+
+
+sns.boxplot(data=df_imputed, x='Outcome', y='Age')
+plt.title('Distribution of Age for Diabetes and No Diabetes')
+plt.xlabel('Diabetes')
+plt.ylabel('Age')
+plt.show()
+
+
+# In[37]:
+
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Define the ranges for 'Pregnancies'
+bins = [0, 4, 8, 12, 16, float('inf')]
+labels = ['0-4', '5-8', '9-12', '13-16', '17+']
+
+# Create a new column 'PregnancyRange' to store the corresponding range for each 'Pregnancies' value
+df_imputed['PregnancyRange'] = pd.cut(df_imputed['Pregnancies'], bins=bins, labels=labels, right=False)
+
+# Group the data by 'PregnancyRange' and 'Outcome' and count the occurrences
+pregnancy_outcome_counts = df_imputed.groupby(['PregnancyRange', 'Outcome']).size().reset_index(name='Count')
+
+# Pivot the table to get the count of each 'Outcome' for each 'PregnancyRange'
+pivot_table = pregnancy_outcome_counts.pivot(index='PregnancyRange', columns='Outcome', values='Count')
+
+# Create the pie chart for each 'PregnancyRange' value
+for range_label, row in pivot_table.iterrows():
+    labels = ['No Diabetes', 'Diabetes']
+    sizes = row.values
+    colors = ['lightcoral', 'lightblue']
+
+    plt.figure()
+    plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', shadow=True)
+    plt.title(f'Outcome Proportion for Pregnancies Range {range_label}')
+    plt.show()
+
+
+# In[39]:
+
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Create a box plot to compare 'BloodPressure' for each 'Outcome'
+sns.boxplot(data=df_imputed, x='Outcome', y='BloodPressure', palette='pastel')
+
+# Add labels and title
+plt.title('Outcome vs. Blood Pressure')
+plt.xlabel('Outcome (0: No Diabetes, 1: Diabetes)')
+plt.ylabel('Blood Pressure')
+plt.show()
+
+
+# In[40]:
+
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Create a box plot to compare 'Glucose' for each 'Outcome'
+sns.boxplot(data=df_imputed, x='Outcome', y='Glucose', palette='pastel')
+
+# Add labels and title
+plt.title('Glucose Levels vs. Outcome')
+plt.xlabel('Outcome (0: No Diabetes, 1: Diabetes)')
+plt.ylabel('Glucose Levels')
+
+# Display the plot
+plt.show()
+
+
+# In[42]:
+
+
+#Create a box plot to compare 'BMI' for each 'Outcome'
+sns.boxplot(data=df_imputed, x='Outcome', y='BMI', palette='pastel')
+
+# Add labels and title
+plt.title('BMI vs. Outcome')
+plt.xlabel('Outcome (0: No Diabetes, 1: Diabetes)')
+plt.ylabel('BMI')
+
+# Display the plot
+plt.show()
+
+
+# In[139]:
+
+
+fig, axs = plt.subplots(4, 2, figsize=(20,20))
+axs = axs.flatten()
+for i in range(len(df_imputed.columns)-1):
+    sns.boxplot(data=df_imputed, x=df_imputed.columns[i], ax=axs[i], palette=random.choice(pallete))
+
+
+
+# Correlation 
+
+# In[22]:
+
+
+# Create the correlation matrix
+correlation_matrix = df_imputed.corr()
+
+# Display the correlation matrix
+print(correlation_matrix)
+
+
+# In[23]:
+
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
+plt.title('Correlation Matrix')
+plt.show()
+
+
+# standardization 
+
+# In[25]:
+
+
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+
+# In[26]:
+
+
+import pandas as pd
+from sklearn.impute import SimpleImputer
+
+
+# In[27]:
+
+
+numerical_cols = ['Glucose','Pregnancies', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'Age']
+
+# Replace zero values with NaN
+diabetic_data2[numerical_cols] = diabetic_data2[numerical_cols].replace(0, np.nan)
+
+
+# In[28]:
+
+
+# Impute missing values for numerical columns with median
+imputer = SimpleImputer(strategy='median')
+diabetic_data2[numerical_cols] = imputer.fit_transform(diabetic_data2[numerical_cols])
+
+
+# In[29]:
+
+
+diabetic_data2
+
+
+# In[30]:
+
+
+labels = {0:'Pregnancies',1:'Glucose',2:'BloodPressure',3:'SkinThickness',4:'Insulin',5:'BMI',6:'DiabetesPedigreeFunction',7:'Age'}
+print(labels)
+print("\nColumn #, # of Zero Values\n")
+print((diabetic_data2[:] == 0).sum())
+
+
+# Data Standardization
+
+# In[31]:
+
+
+scaler = StandardScaler()
+
+# Fit the scaler on the numerical columns and transform the data
+diabetic_data2[numerical_cols] = scaler.fit_transform(diabetic_data2[numerical_cols])
+
+
+# In[32]:
+
+
+print(diabetic_data2)
+
+
+# In[33]:
+
+
+scaler.fit(X)
+
+
+# In[34]:
+
+
+standardized_data = scaler.transform(X)
+
+
+# In[35]:
+
+
+print(standardized_data)
+
+
+# In[36]:
+
+
+X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.2, stratify=Y, random_state=2)
+
+
+# In[37]:
+
+
+print(X.shape, X_train.shape, X_test.shape)
+
+
+# SVM
+
+# In[70]:
+
+
+classifier = svm.SVC(kernel='linear')
+
+
+# In[71]:
+
+
+classifier.fit(X_train, Y_train)
+
+
+# In[72]:
+
+
+# accuracy score on the training data
+X_train_prediction = classifier.predict(X_train)
+training_data_accuracy = accuracy_score(X_train_prediction, Y_train)
+
+
+# In[73]:
+
+
+print('Accuracy score of the training data : ', training_data_accuracy)
+
+
+# In[74]:
+
+
+# accuracy score on the test data
+X_test_prediction = classifier.predict(X_test)
+test_data_accuracy = accuracy_score(X_test_prediction, Y_test)
+
+
+# In[75]:
+
+
+print('Accuracy score of the test data : ', test_data_accuracy)
+
+
+# In[76]:
+
+
+input_data = (5,166,72,19,175,25.8,0.587,51)
+
+# changing the input_data to numpy array
+input_data_as_numpy_array = np.asarray(input_data)
+
+# reshape the array as we are predicting for one instance
+input_data_reshaped = input_data_as_numpy_array.reshape(1,-1)
+
+# standardize the input data
+std_data = scaler.transform(input_data_reshaped)
+print(std_data)
+
+prediction = classifier.predict(std_data)
+print(prediction)
+
+if (prediction[0] == 0):
+  print('The person is not diabetic')
+else:
+  print('The person is diabetic')
+
+
+# In[77]:
+
+
+X = standardized_data
+Y = diabetic_data['Outcome']
+
+
+# In[79]:
+
+
+from sklearn.model_selection import cross_val_score
+
+
+# In[39]:
+
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+
+# Create instances of the classifiers
+logistic_regression = LogisticRegression()
+decision_tree = DecisionTreeClassifier()
+svm_classifier = SVC()
+random_forest = RandomForestClassifier()
+
+# You can now use these instances for training and prediction
+
+
+# In[40]:
+
+
+# Assuming you have preprocessed data 'X_train', 'X_test', 'y_train', 'y_test'
+
+# Fit the Logistic Regression model
+logistic_regression.fit(X_train, Y_train)
+
+# Make predictions using Logistic Regression
+logistic_predictions = logistic_regression.predict(X_test)
+
+# Fit the Decision Tree model
+decision_tree.fit(X_train, Y_train)
+
+# Make predictions using Decision Tree
+dt_predictions = decision_tree.predict(X_test)
+
+# Fit the SVM model
+svm_classifier.fit(X_train, Y_train)
+
+# Make predictions using SVM
+svm_predictions = svm_classifier.predict(X_test)
+
+# Fit the Random Forest model
+random_forest.fit(X_train, Y_train)
+
+# Make predictions using Random Forest
+rf_predictions = random_forest.predict(X_test)
+
+# Now you can evaluate the performance of each model using metrics like accuracy, precision, recall, etc.
+
+
+# In[41]:
+
+
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+# Evaluate Logistic Regression
+logistic_accuracy = accuracy_score(Y_test, logistic_predictions)
+logistic_precision = precision_score(Y_test, logistic_predictions)
+logistic_recall = recall_score(Y_test, logistic_predictions)
+logistic_f1 = f1_score(Y_test, logistic_predictions)
+
+print("Logistic Regression:")
+print("Accuracy:", logistic_accuracy)
+print("Precision:", logistic_precision)
+print("Recall:", logistic_recall)
+print("F1-Score:", logistic_f1)
+print()
+
+# Evaluate Decision Tree
+dt_accuracy = accuracy_score(Y_test, dt_predictions)
+dt_precision = precision_score(Y_test, dt_predictions)
+dt_recall = recall_score(Y_test, dt_predictions)
+dt_f1 = f1_score(Y_test, dt_predictions)
+
+print("Decision Tree:")
+print("Accuracy:", dt_accuracy)
+print("Precision:", dt_precision)
+print("Recall:", dt_recall)
+print("F1-Score:", dt_f1)
+print()
+
+# Evaluate SVM
+svm_accuracy = accuracy_score(Y_test, svm_predictions)
+svm_precision = precision_score(Y_test, svm_predictions)
+svm_recall = recall_score(Y_test, svm_predictions)
+svm_f1 = f1_score(Y_test, svm_predictions)
+
+print("Support Vector Machine (SVM):")
+print("Accuracy:", svm_accuracy)
+print("Precision:", svm_precision)
+print("Recall:", svm_recall)
+print("F1-Score:", svm_f1)
+print()
+
+# Evaluate Random Forest
+rf_accuracy = accuracy_score(Y_test, rf_predictions)
+rf_precision = precision_score(Y_test, rf_predictions)
+rf_recall = recall_score(Y_test, rf_predictions)
+rf_f1 = f1_score(Y_test, rf_predictions)
+
+print("Random Forest:")
+print("Accuracy:", rf_accuracy)
+print("Precision:", rf_precision)
+print("Recall:", rf_recall)
+print("F1-Score:", rf_f1)
+
+
+# In[42]:
+
+
+
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+#Split the data into training and test sets
+X_train, X_test, Y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+# Create a decision tree model
+tree_model = DecisionTreeClassifier()
+
+# Train the model
+tree_model.fit(X_train, Y_train)
+
+# Plot the decision tree
+plt.figure(figsize=(30, 8))
+plot_tree(tree_model, filled=True, feature_names=['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age'], class_names=['No Diabetes', 'Diabetes'])
+plt.show()
+
+
+# In[43]:
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_classification
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import roc_curve, auc
+
+# Generate a synthetic dataset
+X, Y = make_classification(n_samples=1000, n_features=20, n_classes=2, random_state=42)
+
+# Split the dataset into training and testing sets
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+# Initialize classifiers
+classifiers = {
+    'Logistic Regression': LogisticRegression(),
+    'SVM': SVC(probability=True),
+    'Random Forest': RandomForestClassifier(),
+    'Decision Tree': DecisionTreeClassifier()
+}
+
+# Create ROC curves and calculate AUC for each classifier
+plt.figure(figsize=(10, 8))
+for name, classifier in classifiers.items():
+    classifier.fit(X_train, Y_train)
+    Y_score = classifier.predict_proba(X_test)[:, 1]
+    fpr, tpr, _ = roc_curve(Y_test, Y_score)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr, label=f'{name} (AUC = {roc_auc:.2f})')
+
+plt.plot([0, 1], [0, 1], 'k--', label='Random')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves for Binary Classification Algorithms')
+plt.legend(loc='lower right')
+plt.show()
+
